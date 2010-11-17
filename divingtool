@@ -1,0 +1,150 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Copyright (c) 2010 Björn Edström <be@bjrn.se>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+''' utility for calculating points in diving etc.
+
+This program is a homeage to the wednesday of november 17:th 2010 when
+I become a diving functionary by mistake.
+'''
+
+import optparse
+import re
+import sys
+
+
+def decode(code):
+    '''Take a diving code and decode it to a human readable form.'''
+
+    if len(code) not in (3, 4, 5):
+        raise ValueError('incorrect length')
+
+    if code[0] not in '123456':
+        raise ValueError('incorrect group')
+
+    direction = lambda d: {
+        '0': '',
+        '1': 'forward',
+        '2': 'back',
+        '3': 'reverse',
+        '4': 'inward',
+        }.get(d)
+
+    flying = lambda f: {
+        '0': '',
+        '1': 'flying',
+        }.get(f)
+
+    somersault = lambda s: {
+        '0': 'dive', # special case
+        '1': 'dive', # special case
+        '2': 'somersault',
+        '3': '1½ somersault',
+        '4': 'double somersault',
+        '5': '2½ somersault',
+        '6': 'triple somersault',
+        '7': '3½ somersault',
+        '8': '4',
+        '9': '4½ somersault',
+        }.get(s)
+
+    twist = lambda t: {
+        '1': '½ twist',
+        '2': '1 twist',
+        '3': '1½ twists',
+        '4': '2 twists',
+        '5': '2½ twists',
+        '6': '3 twists',
+        '7': '3½ twists',
+        '8': '4 twists',
+        '9': '4½ twists',
+        }.get(t)
+
+    style = {
+        '': '',
+        'a': '(straight)',
+        'b': '(pike)',
+        'c': '(tuck)',
+        'd': '(free)',
+        }
+
+    decoders = [
+        ('6(\d)(\d)(\d)(\D?)', ('armstand', direction, somersault, twist)),
+        ('6(\d)(\d)(\D?)', ('armstand', direction, somersault)),
+        ('5(\d)(\d)(\d)(\D?)', ('', direction, somersault, twist)),
+        ('(\d)(\d)(\d)(\D?)', ('', direction, flying, somersault))
+        ]
+
+    # XXX: hacky
+    for target, rule in decoders:
+        match = re.findall(target, code)
+        if match:
+            match = match[0]
+
+            prefix, maps = rule[0], rule[1:]
+            applied = [prefix] + \
+                [k(v) for k, v in zip(maps, match[:-1])] \
+                + [style.get(match[-1].lower())]
+            return  ' '.join([a for a in applied if a])
+
+
+def calc(raw):
+    '''Calculate points.'''
+
+    dod, points = raw.split('=')
+    dod = float(dod)
+    points = map(float, points.split(','))
+
+    if len(points) == 5:
+        points.remove(max(points))
+        points.remove(min(points))
+    elif len(points) == 7:
+        points.remove(max(points))
+        points.remove(max(points))
+        points.remove(min(points))
+        points.remove(min(points))
+    else:
+        raise ValueError('5 or 7 judges supported atm')
+
+    return sum(points) * dod
+
+
+def main():
+    parser = optparse.OptionParser()
+    parser.add_option('-d', '--decode', action='store', metavar='NNN[N]{A,B,C,D}',
+                      help='decode a dive')
+    parser.add_option('-c', '--calc', action='store', metavar='D=P[,P..]',
+                      help='calculate points')
+    options, args = parser.parse_args()
+    if options.decode:
+        print decode(options.decode)
+        sys.exit(0)
+    elif options.calc:
+        print '%.1f' % calc(options.calc)
+        sys.exit(0)
+    else:
+        parser.error('no action given')
+    sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
