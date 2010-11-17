@@ -10,7 +10,7 @@ Sample usage. Calculate points:
 
 This will print 30.4.
 
-Print a diving code in human readable form:
+Print a dive number in human readable form:
 
 `$ ./divingtool --decode 6243A`
 

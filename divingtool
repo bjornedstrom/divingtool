@@ -32,13 +32,13 @@ import re
 import sys
 
 
-def decode(code):
-    '''Take a diving code and decode it to a human readable form.'''
+def decode(number):
+    '''Take a diving number and decode it to a human readable form.'''
 
-    if len(code) not in (3, 4, 5):
+    if len(number) not in (3, 4, 5):
         raise ValueError('incorrect length')
 
-    if code[0] not in '123456':
+    if number[0] not in '123456':
         raise ValueError('incorrect group')
 
     direction = lambda d: {
@@ -96,7 +96,7 @@ def decode(code):
 
     # XXX: hacky
     for target, rule in decoders:
-        match = re.findall(target, code)
+        match = re.findall(target, number)
         if match:
             match = match[0]
 
@@ -131,7 +131,7 @@ def calc(raw):
 def main():
     parser = optparse.OptionParser()
     parser.add_option('-d', '--decode', action='store', metavar='NNN[N]{A,B,C,D}',
-                      help='decode a dive')
+                      help='decode a dive number')
     parser.add_option('-c', '--calc', action='store', metavar='D=P[,P..]',
                       help='calculate points')
     options, args = parser.parse_args()
